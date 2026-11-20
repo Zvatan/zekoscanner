@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Fotoğraflarınızı cihazınızda işleyen belge tarayıcı: otomatik kırpma, perspektif düzeltme, filtreler, PDF ve JPEG.">
+  <meta name="theme-color" content="#0B0D12">
+  <meta name="color-scheme" content="dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Zeko Tara">
+  <meta name="format-detection" content="telephone=no">
+  <title>Zeko Tara</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/app.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- Belgeler -->
+    <section class="screen is-active" id="screen-home" aria-label="Belgelerim">
+      <header class="bar bar--large">
+        <div class="bar__row">
+          <h1 class="title-large">Belgelerim</h1>
+          <button class="icon-btn" id="home-more" aria-label="Uygulama bilgisi"><i data-icon="info"></i></button>
+        </div>
+      </header>
+      <main class="scroll" id="home-scroll">
+        <div id="install-banner" hidden></div>
+        <div id="home-list" class="doc-list"></div>
+      </main>
+      <footer class="dock">
+        <button class="btn btn--secondary btn--lg" data-capture="gallery" data-target="new"><i data-icon="gallery"></i>Galeri</button>
+        <button class="btn btn--primary btn--lg" data-capture="camera" data-target="new"><i data-icon="camera"></i>Tara</button>
+      </footer>
+    </section>
+
+    <!-- Belge -->
+    <section class="screen" id="screen-doc" aria-label="Belge">
+      <header class="bar">
+        <button class="icon-btn" id="doc-back" aria-label="Belgelerim"><i data-icon="back"></i></button>
+        <button class="bar__title bar__title--edit" id="doc-title" aria-label="Belgeyi yeniden adlandır">
+          <span id="doc-title-text"></span><i data-icon="pencil" class="icon--small"></i>
+        </button>
+        <button class="icon-btn" id="doc-more" aria-label="Belge seçenekleri"><i data-icon="more"></i></button>
+      </header>
+      <main class="scroll" id="doc-scroll">
+        <div class="page-grid" id="page-grid"></div>
+        <p class="hint" id="doc-hint">Sıralamak için sayfaya basılı tutup sürükleyin.</p>
+      </main>
+      <footer class="dock">
+        <button class="btn btn--secondary" data-capture="camera" data-target="add" aria-label="Kamerayla sayfa ekle"><i data-icon="camera"></i><span class="btn__plus">+</span></button>
+        <button class="btn btn--secondary" data-capture="gallery" data-target="add" aria-label="Galeriden sayfa ekle"><i data-icon="gallery"></i><span class="btn__plus">+</span></button>
+        <button class="btn btn--primary btn--grow" id="doc-export"><i data-icon="share"></i>Dışa aktar</button>
+      </footer>
+    </section>
+
+    <!-- Kırpma -->
+    <section class="screen screen--editor" id="screen-crop" aria-label="Kırpma">
+      <header class="bar">
+        <button class="text-btn" id="crop-cancel">Vazgeç</button>
+        <div class="bar__title"><span>Köşeleri ayarla</span><small id="crop-progress"></small></div>
+        <button class="text-btn" id="crop-all" hidden>Tümünü ekle</button>
+      </header>
+      <main class="crop-stage" id="crop-stage"></main>
+      <footer class="dock dock--tools">
+        <button class="tool" id="crop-toggle"><i data-icon="frame"></i><span>Tümü</span></button>
+        <div class="dock__spacer"></div>
+        <button class="btn btn--primary" id="crop-apply"><i data-icon="check"></i>Uygula</button>
+      </footer>
+    </section>
+
+    <!-- Görünüm (filtre) -->
+    <section class="screen screen--editor" id="screen-filter" aria-label="Görünüm">
+      <header class="bar">
+        <button class="text-btn" id="filter-cancel">Vazgeç</button>
+        <div class="bar__title"><span>Görünüm</span><small id="filter-progress"></small></div>
+        <button class="icon-btn icon-btn--danger" id="filter-delete" aria-label="Sayfayı sil" hidden><i data-icon="trash"></i></button>
+      </header>
+      <main class="preview-stage" id="filter-stage">
+        <canvas id="filter-canvas" aria-label="Sayfa önizlemesi"></canvas>
+        <div class="stage-spinner" id="filter-spinner" hidden><span class="spinner"></span></div>
+      </main>
+      <div class="filter-strip" id="filter-strip" role="radiogroup" aria-label="Görünüm"></div>
+      <footer class="dock dock--tools">
+        <button class="tool" id="filter-crop"><i data-icon="crop"></i><span>Kırp</span></button>
+        <button class="tool" id="filter-rotate"><i data-icon="rotate"></i><span>Döndür</span></button>
+        <div class="dock__spacer"></div>
+        <button class="btn btn--primary" id="filter-save"><i data-icon="check"></i><span>Kaydet</span></button>
+      </footer>
+    </section>
+  </div>
+
+  <input type="file" id="input-camera" accept="image/*" capture="environment" hidden>
+  <input type="file" id="input-gallery" accept="image/*" multiple hidden>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <div id="busy" hidden><div class="busy__card"><span class="spinner"></span><span class="busy__text">İşleniyor…</span></div></div>
+  <div id="overlay-root"></div>
+  <noscript><p class="noscript">Bu uygulama için JavaScript gereklidir.</p></noscript>
+</body>
+</html>

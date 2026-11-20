@@ -1,0 +1,9 @@
+{
+  "name": "zeko-tara",
+  "private": true,
+  "type": "module",
+  "description": "iPhone için cihazda çalışan belge tarayıcı (PWA)",
+  "scripts": {
+    "test": "node tests/run.mjs"
+  }
+}

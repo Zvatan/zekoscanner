@@ -6,6 +6,7 @@ Apple Developer hesabı gerekmez; GitHub Pages üzerinde ücretsiz yayınlanır.
 - Kamerayla çekim ya da galeriden (çoklu) seçim
 - Dört köşenin otomatik algılanması; köşe ve kenar tutamaçlarıyla parmakla düzeltme, büyüteç
 - Perspektif düzeltme (belgenin gerçek en/boy oranı tahmin edilir)
+- **Sihirli** görünüm: fotoğrafı tarayıcıdan çıkmış gibi netleştirir, yoğunluğu 0–100 arasında ayarlanır
 - Orijinal, Renkli iyileştirme, Gri ve Siyah-beyaz görünümleri; döndürme; kırpmaya geri dönme
 - Çok sayfalı belgeler: sayfa ekleme, basılı tutup sürükleyerek sıralama, düzenleme, silme
 - PDF (Otomatik ya da A4 sayfa) ve JPEG olarak iOS paylaşım menüsüyle dışa aktarma
@@ -59,7 +60,7 @@ Sürüm değişince uygulamada “Yeni sürüm hazır → Yenile” bildirimi ç
 2. **Kamera:** *Tara* → kamera açılıyor → çek → *Fotoğrafı Kullan* → belge köşeleri mavi çerçeveyle işaretli.
 3. **Galeri:** *Galeri* ile 3 fotoğraf seç → “1 / 3” görünüyor; *Tümünü ekle* hepsini ekliyor.
 4. **Kırpma:** Köşe sürüklenince büyüteç çıkıyor; kenar ortasındaki tutamaç kenarı paralel kaydırıyor; köşeyi karşı köşenin ötesine çekince çerçeve kırmızı, bırakınca “Geçersiz seçim” ve eski yerine dönüş; *Tümü / Otomatik* geçişi çalışıyor.
-5. **Görünüm:** Orijinal, Renkli, Gri, Siyah-beyaz aynı belge üzerinde önizleniyor; *Döndür* çalışıyor; *Kırp* ile geri dönüp köşeyi değiştirince yeni sonuç geliyor.
+5. **Görünüm:** İlk taramada Sihirli seçili ve Yoğunluk kaydırıcısı görünüyor; kaydırınca önizleme akıcı biçimde değişiyor, kaydedip yeni sayfa ekleyince son değer hatırlanıyor. Orijinal, Sihirli, Renkli, Gri, Siyah-beyaz aynı belge üzerinde önizleniyor; *Döndür* çalışıyor; *Kırp* ile geri dönüp köşeyi değiştirince yeni sonuç geliyor.
 6. **Belge:** *Kaydet* sonrası belge ekranı; kamera/galeri + ile sayfa ekleniyor; sayfa basılı tutulup sürüklenerek sıralanıyor; sayfaya dokunup filtresi değiştirilip kaydediliyor; sayfa siliniyor.
 7. **Dışa aktar (PDF):** *Paylaş* → *Dosyalar’a Kaydet* → Dosyalar uygulamasında PDF açılıyor; sayfa sırası doğru; A4 seçeneği de deneyin.
 8. **Dışa aktar (JPEG):** *Paylaş* → *Görüntüleri Kaydet* → Fotoğraflar’da tüm sayfalar var.
@@ -68,6 +69,8 @@ Sürüm değişince uygulamada “Yeni sürüm hazır → Yenile” bildirimi ç
 11. **Zor durumlar:** Beyaz masada beyaz kağıt, gölgeli çekim, yatay fotoğraf, ekran görüntüsü (PNG); algılama kaçarsa köşeler elle düzeltilebiliyor.
 
 ## Geliştirme
+
+Mimari, veri modeli, algoritma ayarları, testler, dikkat edilecek noktalar ve yol haritası: **[GELISTIRME.md](GELISTIRME.md)**.
 
 Derleme adımı yoktur; dosyalar olduğu gibi yayınlanır. Yerelde denemek için klasörü herhangi bir statik sunucuyla açın
 (service worker ve kamera için `localhost` ya da HTTPS gerekir).

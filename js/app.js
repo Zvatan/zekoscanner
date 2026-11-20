@@ -1,4 +1,4 @@
-// Uygulama denetleyicisi: ekranlar, tarama oturumu ve belge işlemleri.
+// Uygulama denetleyicisi: ekranlar, tarama oturumu ve belge iÅŸlemleri.
 import { Engine } from './engine.js';
 import * as store from './store.js';
 import { CropView } from './crop-view.js';
@@ -6,18 +6,18 @@ import { fileToCanvas, scaledCanvas, rgbaToCanvas, canvasToBlob, releaseCanvas }
 import { icon, hydrateIcons, toast, busy, actionSheet, confirmDialog, promptDialog, sheet, escapeHtml } from './ui.js';
 import { openExport } from './export.js';
 import { enableReorder } from './reorder.js';
-import { FILTERS } from './core/filters.js';
+import { FILTERS, DEFAULT_STRENGTH } from './core/filters.js';
 import { fullFrame, normalizeQuad } from './core/geometry.js';
 
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const SCREENS = ['home', 'doc', 'crop', 'filter'];
 const $ = (sel, root = document) => root.querySelector(sel);
 
 const engine = new Engine();
 const app = {
-  doc: null, // açık belge
-  pages: [], // açık belgenin sayfa kayıtları
-  session: null, // süren tarama/düzenleme
+  doc: null, // aÃ§Ä±k belge
+  pages: [], // aÃ§Ä±k belgenin sayfa kayÄ±tlarÄ±
+  session: null, // sÃ¼ren tarama/dÃ¼zenleme
   captureTarget: 'new',
   thumbs: new Map(), // sayfaId -> nesne URL'si
 };
@@ -27,17 +27,27 @@ const app = {
 function lastFilter() {
   try {
     const v = localStorage.getItem('zt.filter');
-    return FILTERS.some((f) => f.id === v) ? v : 'color';
+    return FILTERS.some((f) => f.id === v) ? v : 'magic';
   } catch {
-    return 'color';
+    return 'magic';
   }
 }
 
-function rememberFilter(id) {
+function lastStrength() {
+  try {
+    const v = Number(localStorage.getItem('zt.magic'));
+    return localStorage.getItem('zt.magic') !== null && v >= 0 && v <= 100 ? v : DEFAULT_STRENGTH;
+  } catch {
+    return DEFAULT_STRENGTH;
+  }
+}
+
+function rememberFilter(id, strength) {
   try {
     localStorage.setItem('zt.filter', id);
+    if (FILTERS.find((f) => f.id === id)?.adjustable) localStorage.setItem('zt.magic', String(strength));
   } catch {
-    /* özel mod */
+    /* Ã¶zel mod */
   }
 }
 
@@ -53,7 +63,7 @@ function go(name) {
   }
 }
 
-// --- biçimlendirme -------------------------------------------------------
+// --- biÃ§imlendirme -------------------------------------------------------
 
 const dateFmt = new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' });
 const timeFmt = new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' });
@@ -62,7 +72,7 @@ function formatDate(ms) {
   const d = new Date(ms);
   const today = new Date();
   const sameDay = d.toDateString() === today.toDateString();
-  return sameDay ? `Bugün ${timeFmt.format(d)}` : dateFmt.format(d);
+  return sameDay ? `BugÃ¼n ${timeFmt.format(d)}` : dateFmt.format(d);
 }
 
 function defaultTitle() {
@@ -71,7 +81,7 @@ function defaultTitle() {
   return `Tarama ${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-// --- küçük resimler ------------------------------------------------------
+// --- kÃ¼Ã§Ã¼k resimler ------------------------------------------------------
 
 async function thumbUrl(pageId) {
   if (app.thumbs.has(pageId)) return app.thumbs.get(pageId);
@@ -102,7 +112,7 @@ async function refreshHome() {
   const list = $('#home-list');
   list.replaceChildren();
   if (!docs.length) {
-    list.innerHTML = `<div class="empty">${EMPTY_ART}<h2>Henüz belge yok</h2><p>Belgeyi kamerayla tara ya da galeriden bir fotoğraf seç. Fotoğraflar yalnızca bu cihazda işlenir.</p></div>`;
+    list.innerHTML = `<div class="empty">${EMPTY_ART}<h2>HenÃ¼z belge yok</h2><p>Belgeyi kamerayla tara ya da galeriden bir fotoÄŸraf seÃ§. FotoÄŸraflar yalnÄ±zca bu cihazda iÅŸlenir.</p></div>`;
     return;
   }
   for (const doc of docs) {
@@ -111,8 +121,8 @@ async function refreshHome() {
     row.innerHTML =
       `<button class="doc-row__main"><span class="doc-thumb"><img alt=""></span>` +
       `<span class="doc-row__text"><span class="doc-row__title">${escapeHtml(doc.title)}</span>` +
-      `<span class="doc-row__meta">${doc.pageIds.length} sayfa · ${formatDate(doc.updatedAt)}</span></span></button>` +
-      `<button class="icon-btn" aria-label="${escapeHtml(doc.title)} seçenekleri">${icon('more')}</button>`;
+      `<span class="doc-row__meta">${doc.pageIds.length} sayfa Â· ${formatDate(doc.updatedAt)}</span></span></button>` +
+      `<button class="icon-btn" aria-label="${escapeHtml(doc.title)} seÃ§enekleri">${icon('more')}</button>`;
     const [open, more] = row.querySelectorAll('button');
     open.addEventListener('click', () => openDoc(doc.id));
     more.addEventListener('click', () => docMenu(doc));
@@ -144,8 +154,8 @@ function showInstallBanner() {
   const el = $('#install-banner');
   el.className = 'banner';
   el.innerHTML =
-    `${icon('share')}<p><b>Uygulama gibi kullan:</b> Safari’de Paylaş düğmesine dokunup ` +
-    `<b>“Ana Ekrana Ekle”</b>yi seç.</p><button class="icon-btn" aria-label="Kapat">${icon('close')}</button>`;
+    `${icon('share')}<p><b>Uygulama gibi kullan:</b> Safariâ€™de PaylaÅŸ dÃ¼ÄŸmesine dokunup ` +
+    `<b>â€œAna Ekrana Ekleâ€</b>yi seÃ§.</p><button class="icon-btn" aria-label="Kapat">${icon('close')}</button>`;
   el.hidden = false;
   el.querySelector('button').addEventListener('click', () => {
     el.hidden = true;
@@ -166,10 +176,10 @@ async function showAbout() {
       'beforeend',
       `<div class="sheet__title">Zeko Tara</div>
        <div class="sheet__info">
-         <p>Fotoğraflar <b>yalnızca bu cihazda</b> işlenir ve saklanır; hiçbir sunucuya gönderilmez.</p>
-         <p><b>${docs.length}</b> belge, <b>${pages}</b> sayfa${used != null ? ` · yaklaşık <b>${(used / 1024 / 1024).toFixed(1).replace('.', ',')} MB</b>` : ''}</p>
-         <p>Uygulamayı ana ekrandan silersen belgeler de silinir. Önemli belgeleri “Dışa aktar” ile Dosyalar’a kaydet.</p>
-         <p>Sürüm ${VERSION}</p>
+         <p>FotoÄŸraflar <b>yalnÄ±zca bu cihazda</b> iÅŸlenir ve saklanÄ±r; hiÃ§bir sunucuya gÃ¶nderilmez.</p>
+         <p><b>${docs.length}</b> belge, <b>${pages}</b> sayfa${used != null ? ` Â· yaklaÅŸÄ±k <b>${(used / 1024 / 1024).toFixed(1).replace('.', ',')} MB</b>` : ''}</p>
+         <p>UygulamayÄ± ana ekrandan silersen belgeler de silinir. Ã–nemli belgeleri â€œDÄ±ÅŸa aktarâ€ ile Dosyalarâ€™a kaydet.</p>
+         <p>SÃ¼rÃ¼m ${VERSION}</p>
        </div>
        <button class="btn btn--secondary btn--block" data-close>Kapat</button>`,
     );
@@ -201,7 +211,7 @@ function renderDoc() {
     const tile = document.createElement('button');
     tile.className = 'page-tile';
     tile.dataset.id = id;
-    tile.setAttribute('aria-label', `Sayfa ${i + 1}, düzenlemek için dokun`);
+    tile.setAttribute('aria-label', `Sayfa ${i + 1}, dÃ¼zenlemek iÃ§in dokun`);
     tile.innerHTML = `<span class="page-tile__img"><img alt="" draggable="false"></span><span class="page-tile__num">${i + 1}</span>`;
     thumbUrl(id).then((u) => {
       if (u) tile.querySelector('img').src = u;
@@ -214,12 +224,12 @@ function renderDoc() {
 function renumber() {
   document.querySelectorAll('#page-grid .page-tile').forEach((t, i) => {
     t.querySelector('.page-tile__num').textContent = i + 1;
-    t.setAttribute('aria-label', `Sayfa ${i + 1}, düzenlemek için dokun`);
+    t.setAttribute('aria-label', `Sayfa ${i + 1}, dÃ¼zenlemek iÃ§in dokun`);
   });
 }
 
 async function renameDoc(doc) {
-  const title = await promptDialog({ title: 'Belge adı', value: doc.title });
+  const title = await promptDialog({ title: 'Belge adÄ±', value: doc.title });
   if (!title || title === doc.title) return;
   doc.title = title;
   doc.updatedAt = Date.now();
@@ -234,7 +244,7 @@ async function renameDoc(doc) {
 async function deleteDoc(doc) {
   const ok = await confirmDialog({
     title: 'Belge silinsin mi?',
-    message: `“${doc.title}” ve ${doc.pageIds.length} sayfası bu cihazdan kalıcı olarak silinir.`,
+    message: `â€œ${doc.title}â€ ve ${doc.pageIds.length} sayfasÄ± bu cihazdan kalÄ±cÄ± olarak silinir.`,
     ok: 'Sil',
     danger: true,
   });
@@ -249,8 +259,8 @@ async function deleteDoc(doc) {
 
 async function docMenu(doc) {
   const choice = await actionSheet(doc.title, [
-    { value: 'export', label: 'Dışa aktar', icon: 'share' },
-    { value: 'rename', label: 'Yeniden adlandır', icon: 'pencil' },
+    { value: 'export', label: 'DÄ±ÅŸa aktar', icon: 'share' },
+    { value: 'rename', label: 'Yeniden adlandÄ±r', icon: 'pencil' },
     { value: 'delete', label: 'Sil', icon: 'trash', danger: true },
   ]);
   if (choice === 'export') openExport(doc);
@@ -260,8 +270,8 @@ async function docMenu(doc) {
 
 // --- tarama oturumu ------------------------------------------------------
 //
-// Her yeni sayfa: kırpma -> görünüm -> kaydet. Galeriden çoklu seçimde
-// fotoğraflar sırayla aynı akıştan geçer.
+// Her yeni sayfa: kÄ±rpma -> gÃ¶rÃ¼nÃ¼m -> kaydet. Galeriden Ã§oklu seÃ§imde
+// fotoÄŸraflar sÄ±rayla aynÄ± akÄ±ÅŸtan geÃ§er.
 
 function capture(kind, target) {
   app.captureTarget = target;
@@ -289,14 +299,14 @@ async function onFilesChosen(e) {
 
 async function loadNewPage(file) {
   const s = app.session;
-  busy.show(s.total > 1 ? `Fotoğraf ${s.index}/${s.total} hazırlanıyor…` : 'Belge algılanıyor…');
+  busy.show(s.total > 1 ? `FotoÄŸraf ${s.index}/${s.total} hazÄ±rlanÄ±yorâ€¦` : 'Belge algÄ±lanÄ±yorâ€¦');
   try {
     s.page = await preparePage(file);
     showCrop();
-    if (!s.page.autoCorners) toast('Belge kenarı bulunamadı. Köşeleri elle ayarlayın.');
+    if (!s.page.autoCorners) toast('Belge kenarÄ± bulunamadÄ±. KÃ¶ÅŸeleri elle ayarlayÄ±n.');
   } catch (err) {
     console.error(err);
-    toast('Fotoğraf açılamadı');
+    toast('FotoÄŸraf aÃ§Ä±lamadÄ±');
     releasePage();
     await advance();
   } finally {
@@ -323,6 +333,7 @@ async function preparePage(file) {
     corners: corners || fullFrame(canvas.width, canvas.height),
     rotation: 0,
     filter: lastFilter(),
+    strength: lastStrength(),
     createdAt: Date.now(),
   };
 }
@@ -330,13 +341,13 @@ async function preparePage(file) {
 async function openExistingPage(pageId) {
   const meta = app.pages.find((p) => p.id === pageId);
   if (!meta || app.session) return;
-  busy.show('Sayfa açılıyor…');
+  busy.show('Sayfa aÃ§Ä±lÄ±yorâ€¦');
   let canvas = null;
   try {
     const blob = await store.getBlob(`${pageId}:src`);
-    if (!blob) throw new Error('Kaynak fotoğraf yok');
+    if (!blob) throw new Error('Kaynak fotoÄŸraf yok');
     canvas = await fileToCanvas(blob);
-    // Kayıtlı köşeler kaynak boyutuna göre; boyut değiştiyse ölçekle.
+    // KayÄ±tlÄ± kÃ¶ÅŸeler kaynak boyutuna gÃ¶re; boyut deÄŸiÅŸtiyse Ã¶lÃ§ekle.
     const k = canvas.width / (meta.srcW || canvas.width);
     const scale = (c) => (c ? c.map((v) => v * k) : null);
     await engine.load(canvas, { detect: false });
@@ -355,6 +366,7 @@ async function openExistingPage(pageId) {
         corners: scale(meta.corners),
         rotation: meta.rotation || 0,
         filter: meta.filter || 'original',
+        strength: meta.strength ?? lastStrength(),
         createdAt: meta.createdAt,
         warped: true,
       },
@@ -363,7 +375,7 @@ async function openExistingPage(pageId) {
     await showFilter();
   } catch (err) {
     console.error(err);
-    toast('Sayfa açılamadı');
+    toast('Sayfa aÃ§Ä±lamadÄ±');
     if (app.session) releasePage();
     else {
       releaseCanvas(canvas);
@@ -406,7 +418,7 @@ async function cancelSession({ confirmSingle = false } = {}) {
   if (s.queue.length) {
     const ok = await confirmDialog({
       title: 'Tarama durdurulsun mu?',
-      message: `Bu fotoğraf ve kalan ${s.queue.length} fotoğraf eklenmeyecek.`,
+      message: `Bu fotoÄŸraf ve kalan ${s.queue.length} fotoÄŸraf eklenmeyecek.`,
       ok: 'Durdur',
       danger: true,
     });
@@ -424,10 +436,10 @@ async function cancelSession({ confirmSingle = false } = {}) {
   }
 }
 
-// --- kırpma ekranı -------------------------------------------------------
+// --- kÄ±rpma ekranÄ± -------------------------------------------------------
 
 export const cropView = new CropView($('#crop-stage'), {
-  onInvalid: () => toast('Geçersiz seçim'),
+  onInvalid: () => toast('GeÃ§ersiz seÃ§im'),
 });
 
 function showCrop() {
@@ -444,8 +456,8 @@ function sameQuad(a, b) {
   return a && b && a.every((v, i) => Math.abs(v - b[i]) < 0.5);
 }
 
-// Gözlenen davranış: "Otomatik" algılanan köşelere, "Tümü" tüm fotoğrafa
-// geçer; düğme, dokununca geçilecek seçeneği gösterir.
+// GÃ¶zlenen davranÄ±ÅŸ: "Otomatik" algÄ±lanan kÃ¶ÅŸelere, "TÃ¼mÃ¼" tÃ¼m fotoÄŸrafa
+// geÃ§er; dÃ¼ÄŸme, dokununca geÃ§ilecek seÃ§eneÄŸi gÃ¶sterir.
 function updateCropToggle() {
   const p = app.session && app.session.page;
   if (!p) return;
@@ -455,7 +467,7 @@ function updateCropToggle() {
   const toAuto = isFull;
   btn.dataset.action = toAuto ? 'auto' : 'full';
   btn.disabled = toAuto && !p.autoCorners;
-  btn.innerHTML = toAuto ? `${icon('auto')}<span>Otomatik</span>` : `${icon('frame')}<span>Tümü</span>`;
+  btn.innerHTML = toAuto ? `${icon('auto')}<span>Otomatik</span>` : `${icon('frame')}<span>TÃ¼mÃ¼</span>`;
 }
 
 cropView.onChange((valid) => {
@@ -474,25 +486,25 @@ $('#crop-apply').addEventListener('click', async () => {
   const s = app.session;
   if (!s || !s.page) return;
   if (!cropView.valid) {
-    toast('Geçersiz seçim');
+    toast('GeÃ§ersiz seÃ§im');
     return;
   }
   s.page.corners = normalizeQuad(cropView.getCorners());
-  busy.show('Perspektif düzeltiliyor…');
+  busy.show('Perspektif dÃ¼zeltiliyorâ€¦');
   try {
     await engine.warp(s.page.corners, s.page.rotation);
     s.page.warped = true;
     await showFilter();
   } catch (err) {
     console.error(err);
-    toast('İşlenemedi: ' + err.message);
+    toast('Ä°ÅŸlenemedi: ' + err.message);
   } finally {
     busy.hide();
   }
 });
 
-// Görünüm ekranından kırpmaya dönüldüyse "Vazgeç" değişikliği bırakıp geri
-// döner; ilk kırpmadaysa fotoğrafı eklemekten vazgeçer.
+// GÃ¶rÃ¼nÃ¼m ekranÄ±ndan kÄ±rpmaya dÃ¶nÃ¼ldÃ¼yse "VazgeÃ§" deÄŸiÅŸikliÄŸi bÄ±rakÄ±p geri
+// dÃ¶ner; ilk kÄ±rpmadaysa fotoÄŸrafÄ± eklemekten vazgeÃ§er.
 $('#crop-cancel').addEventListener('click', () => {
   const s = app.session;
   if (!s || !s.page) return;
@@ -502,7 +514,7 @@ $('#crop-cancel').addEventListener('click', () => {
 
 $('#crop-all').addEventListener('click', addAllRemaining);
 
-// --- görünüm ekranı ------------------------------------------------------
+// --- gÃ¶rÃ¼nÃ¼m ekranÄ± ------------------------------------------------------
 
 const filterCanvas = $('#filter-canvas');
 let previewToken = 0;
@@ -526,6 +538,17 @@ function markFilter(id) {
     b.classList.toggle('is-selected', on);
     b.setAttribute('aria-checked', on);
   }
+  const p = app.session && app.session.page;
+  const adjustable = !!FILTERS.find((f) => f.id === id)?.adjustable;
+  $('#filter-strength').hidden = !adjustable;
+  if (adjustable && p) showStrength(p.strength);
+}
+
+function showStrength(v) {
+  const input = $('#strength-input');
+  input.value = v;
+  input.style.setProperty('--fill', `${v}%`);
+  $('#strength-value').textContent = v;
 }
 
 async function showFilter() {
@@ -539,13 +562,34 @@ async function showFilter() {
   await Promise.all([renderPreview(), renderThumbs()]);
 }
 
+// KaydÄ±rÄ±cÄ± sÃ¼rÃ¼klenirken worker'da iÅŸ birikmesin: aynÄ± anda tek Ã¶nizleme
+// Ã§alÄ±ÅŸÄ±r, arada gelen istekler en son deÄŸerle bir kez daha Ã§alÄ±ÅŸtÄ±rÄ±lÄ±r.
+let previewRunning = false;
+let previewAgain = false;
+
 async function renderPreview() {
+  if (previewRunning) {
+    previewAgain = true;
+    return;
+  }
+  previewRunning = true;
+  try {
+    do {
+      previewAgain = false;
+      await drawPreview();
+    } while (previewAgain);
+  } finally {
+    previewRunning = false;
+  }
+}
+
+async function drawPreview() {
   const s = app.session;
   if (!s || !s.page) return;
   const token = ++previewToken;
-  const spinner = setTimeout(() => ($('#filter-spinner').hidden = false), 150);
+  const spinner = setTimeout(() => ($('#filter-spinner').hidden = false), 250);
   try {
-    const r = await engine.preview(s.page.filter);
+    const r = await engine.preview(s.page.filter, s.page.strength);
     if (token !== previewToken) return;
     rgbaToCanvas(r.buffer, r.w, r.h, filterCanvas);
   } finally {
@@ -555,7 +599,8 @@ async function renderPreview() {
 }
 
 async function renderThumbs() {
-  const list = await engine.thumbs();
+  const s = app.session;
+  const list = await engine.thumbs(s && s.page ? s.page.strength : DEFAULT_STRENGTH);
   for (const t of list) {
     const c = $(`.filter-chip[data-id="${t.id}"] canvas`);
     if (c) rgbaToCanvas(t.buffer, t.w, t.h, c);
@@ -569,6 +614,19 @@ async function selectFilter(id) {
   markFilter(id);
   await renderPreview();
 }
+
+$('#strength-input').addEventListener('input', (e) => {
+  const s = app.session;
+  if (!s || !s.page) return;
+  s.page.strength = Number(e.target.value);
+  showStrength(s.page.strength);
+  renderPreview();
+});
+
+// BÄ±rakÄ±nca filtre kÃ¼Ã§Ã¼k resmi de yeni yoÄŸunluÄŸa gÃ¼ncellenir.
+$('#strength-input').addEventListener('change', () => {
+  if (app.session && app.session.page) renderThumbs();
+});
 
 $('#filter-rotate').addEventListener('click', async () => {
   const s = app.session;
@@ -595,7 +653,7 @@ $('#filter-cancel').addEventListener('click', () => {
 $('#filter-save').addEventListener('click', async () => {
   const s = app.session;
   if (!s || !s.page) return;
-  busy.show(s.total > 1 ? `Sayfa ${s.index}/${s.total} kaydediliyor…` : 'Kaydediliyor…');
+  busy.show(s.total > 1 ? `Sayfa ${s.index}/${s.total} kaydediliyorâ€¦` : 'Kaydediliyorâ€¦');
   try {
     await persistPage();
     releasePage();
@@ -611,7 +669,7 @@ $('#filter-save').addEventListener('click', async () => {
 $('#filter-delete').addEventListener('click', async () => {
   const s = app.session;
   if (!s || s.mode !== 'edit') return;
-  const ok = await confirmDialog({ title: 'Sayfa silinsin mi?', message: 'Bu sayfa belgeden kalıcı olarak çıkarılır.', ok: 'Sil', danger: true });
+  const ok = await confirmDialog({ title: 'Sayfa silinsin mi?', message: 'Bu sayfa belgeden kalÄ±cÄ± olarak Ã§Ä±karÄ±lÄ±r.', ok: 'Sil', danger: true });
   if (!ok) return;
   const pageId = s.page.id;
   const doc = await store.getDoc(s.docId);
@@ -623,7 +681,7 @@ $('#filter-delete').addEventListener('click', async () => {
     app.doc = null;
     await refreshHome();
     go('home');
-    toast('Son sayfa silindiği için belge de silindi');
+    toast('Son sayfa silindiÄŸi iÃ§in belge de silindi');
   } else {
     await store.deletePage(doc, pageId);
     await openDoc(doc.id);
@@ -631,11 +689,11 @@ $('#filter-delete').addEventListener('click', async () => {
   }
 });
 
-// Düzeltilmiş sayfayı seçilen görünümle tam çözünürlükte işler ve kaydeder.
+// DÃ¼zeltilmiÅŸ sayfayÄ± seÃ§ilen gÃ¶rÃ¼nÃ¼mle tam Ã§Ã¶zÃ¼nÃ¼rlÃ¼kte iÅŸler ve kaydeder.
 async function persistPage() {
   const s = app.session;
   const p = s.page;
-  const r = await engine.render(p.filter);
+  const r = await engine.render(p.filter, p.strength);
   const out = rgbaToCanvas(r.buffer, r.w, r.h);
   const outBlob = await canvasToBlob(out, 'image/jpeg', 0.88);
   const small = scaledCanvas(out, 360);
@@ -658,6 +716,7 @@ async function persistPage() {
     autoCorners: p.autoCorners,
     rotation: p.rotation,
     filter: p.filter,
+    strength: p.strength,
     srcW: p.canvas.width,
     srcH: p.canvas.height,
     outW: r.w,
@@ -671,27 +730,27 @@ async function persistPage() {
   if (!p.id) blobs.src = await p.srcBlob;
   await store.savePage(doc, meta, blobs);
   dropThumb(id);
-  rememberFilter(p.filter);
+  rememberFilter(p.filter, p.strength);
   s.saved++;
 }
 
-// Kalan fotoğrafları algılanan köşeler ve son görünümle tek seferde ekler.
+// Kalan fotoÄŸraflarÄ± algÄ±lanan kÃ¶ÅŸeler ve son gÃ¶rÃ¼nÃ¼mle tek seferde ekler.
 async function addAllRemaining() {
   const s = app.session;
   if (!s || !s.page || !s.queue.length) return;
   if (!cropView.valid) {
-    toast('Geçersiz seçim');
+    toast('GeÃ§ersiz seÃ§im');
     return;
   }
   const count = s.queue.length + 1;
   const ok = await confirmDialog({
-    title: `${count} fotoğraf otomatik eklensin mi?`,
-    message: 'Köşeler otomatik algılanır ve son kullandığın görünüm uygulanır. Sayfaları sonra tek tek düzenleyebilirsin.',
+    title: `${count} fotoÄŸraf otomatik eklensin mi?`,
+    message: 'KÃ¶ÅŸeler otomatik algÄ±lanÄ±r ve son kullandÄ±ÄŸÄ±n gÃ¶rÃ¼nÃ¼m uygulanÄ±r. SayfalarÄ± sonra tek tek dÃ¼zenleyebilirsin.',
     ok: 'Ekle',
   });
   if (!ok) return;
   let failed = 0;
-  busy.show(`Sayfa ${s.index}/${s.total} işleniyor…`);
+  busy.show(`Sayfa ${s.index}/${s.total} iÅŸleniyorâ€¦`);
   try {
     s.page.corners = normalizeQuad(cropView.getCorners());
     await engine.warp(s.page.corners, s.page.rotation);
@@ -699,7 +758,7 @@ async function addAllRemaining() {
     releasePage();
     while (s.queue.length) {
       s.index++;
-      busy.text(`Sayfa ${s.index}/${s.total} işleniyor…`);
+      busy.text(`Sayfa ${s.index}/${s.total} iÅŸleniyorâ€¦`);
       const file = s.queue.shift();
       try {
         s.page = await preparePage(file);
@@ -720,10 +779,10 @@ async function addAllRemaining() {
     await refreshHome();
     go('home');
   }
-  toast(failed ? `${s.saved} sayfa eklendi, ${failed} fotoğraf açılamadı` : `${s.saved} sayfa eklendi`);
+  toast(failed ? `${s.saved} sayfa eklendi, ${failed} fotoÄŸraf aÃ§Ä±lamadÄ±` : `${s.saved} sayfa eklendi`);
 }
 
-// --- olay bağlama --------------------------------------------------------
+// --- olay baÄŸlama --------------------------------------------------------
 
 function bind() {
   hydrateIcons();
@@ -761,16 +820,16 @@ function bind() {
 
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
-  // İlk kurulumda denetleyici değişimi yeniden yükleme gerektirmez.
+  // Ä°lk kurulumda denetleyici deÄŸiÅŸimi yeniden yÃ¼kleme gerektirmez.
   const hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.register('./sw.js').then((reg) => {
     const offer = (worker) => {
-      toast('Yeni sürüm hazır', {
+      toast('Yeni sÃ¼rÃ¼m hazÄ±r', {
         action: 'Yenile',
         onAction: () => worker.postMessage({ type: 'activate' }),
       });
     };
-    if (!hadController) return; // ilk kurulum: güncelleme teklif edilmez
+    if (!hadController) return; // ilk kurulum: gÃ¼ncelleme teklif edilmez
     if (reg.waiting) offer(reg.waiting);
     reg.addEventListener('updatefound', () => {
       const w = reg.installing;
@@ -795,7 +854,7 @@ async function main() {
     await refreshHome();
   } catch (err) {
     console.error(err);
-    toast('Kayıtlı belgeler okunamadı');
+    toast('KayÄ±tlÄ± belgeler okunamadÄ±');
   }
   registerServiceWorker();
 }

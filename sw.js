@@ -1,6 +1,6 @@
-// Çevrimdışı çalışma: uygulama dosyalarını önbelleğe alır. Yeni sürüm
-// yayınlarken VERSION değerini artırın; kullanıcıya "Yenile" seçeneği çıkar.
-const VERSION = 'zeko-tara-v1.0.0';
+// Ã‡evrimdÄ±ÅŸÄ± Ã§alÄ±ÅŸma: uygulama dosyalarÄ±nÄ± Ã¶nbelleÄŸe alÄ±r. Yeni sÃ¼rÃ¼m
+// yayÄ±nlarken VERSION deÄŸerini artÄ±rÄ±n; kullanÄ±cÄ±ya "Yenile" seÃ§eneÄŸi Ã§Ä±kar.
+const VERSION = 'zeko-tara-v1.1.0';
 
 const FILES = [
   './',
@@ -47,8 +47,8 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'activate') self.skipWaiting();
 });
 
-// Önce önbellek: uygulama ağ olmadan da açılır. Gezinme istekleri her zaman
-// önbellekteki index.html ile karşılanır.
+// Ã–nce Ã¶nbellek: uygulama aÄŸ olmadan da aÃ§Ä±lÄ±r. Gezinme istekleri her zaman
+// Ã¶nbellekteki index.html ile karÅŸÄ±lanÄ±r.
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;

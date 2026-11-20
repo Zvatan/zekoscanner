@@ -7,14 +7,19 @@
 
 export const FILTERS = [
   { id: 'original', label: 'Orijinal' },
+  { id: 'magic', label: 'Sihirli', adjustable: true },
   { id: 'color', label: 'Renkli' },
   { id: 'gray', label: 'Gri' },
   { id: 'bw', label: 'Siyah-beyaz' },
 ];
 
-export function applyFilter(src, w, h, mode) {
+export const DEFAULT_STRENGTH = 60;
+
+// strength: yalnız ayarlanabilir filtrelerde kullanılır (0–100).
+export function applyFilter(src, w, h, mode, strength = DEFAULT_STRENGTH) {
   if (mode === 'original') return new Uint8ClampedArray(src);
   const bg = estimateBackground(src, w, h);
+  if (mode === 'magic') return magicEnhance(src, w, h, bg, strength / 100);
   if (mode === 'color') return colorEnhance(src, w, h, bg);
   if (mode === 'gray') return grayEnhance(src, w, h, bg);
   if (mode === 'bw') return blackWhite(src, w, h, bg);
@@ -284,6 +289,80 @@ function colorEnhance(src, w, h, bg) {
     out[p + 2] = Y + (B - Y) * SAT;
     out[p + 3] = 255;
   });
+  return out;
+}
+
+// Sihirli: fotoğrafı tarayıcıdan çıkmış gibi gösterir. Işık arka plan
+// normalizasyonuyla eşitlenir; parlaklık kanalı boyuta oranlı bulanık
+// kopyasından uzaklaştırılarak keskinleştirilir (unsharp mask); kağıt saf
+// beyaza, mürekkep siyaha itilir; renkli mürekkep canlandırılır.
+// s = 0 yalnız temizlenmiş görüntü, s = 1 en sert tarayıcı görünümü.
+function magicEnhance(src, w, h, bg, s) {
+  s = Math.min(1, Math.max(0, s));
+  const amount = 1.1 * s;
+  const white = 0.96 - 0.16 * s;
+  const black = 0.04 + 0.22 * s;
+  const gamma = 1 + 0.6 * s;
+  const sat = 1.05 + 0.35 * s;
+
+  // Bellek için parlaklık 16 bitte tutulur (×10000; normalize değer ≤ ~1.3).
+  const n = w * h;
+  const Y = new Uint16Array(n);
+  let k = 0;
+  forEachNormalized(src, w, h, bg, (p, r, g, b) => {
+    const y = 0.299 * r + 0.587 * g + 0.114 * b;
+    Y[k++] = y >= 6.5 ? 65000 : y * 10000;
+  });
+  const radius = Math.max(1, Math.round(Math.max(w, h) / 700));
+  const blurred = amount > 0 ? boxBlur16(Y, w, h, radius) : Y;
+
+  // Ton eğrisi tablosu: keskinleştirilmiş parlaklık [-0.5, 1.5) aralığında.
+  const lut = new Float32Array(1601);
+  for (let i = 0; i <= 1600; i++) {
+    let t = (i / 800 - 0.5 - black) / (white - black);
+    t = t <= 0 ? 0 : t >= 1 ? 1 : Math.pow(t, gamma);
+    lut[i] = t;
+  }
+
+  const out = new Uint8ClampedArray(n * 4);
+  k = 0;
+  forEachNormalized(src, w, h, bg, (p, r, g, b) => {
+    const y = Y[k] / 10000;
+    const ys = y + amount * (y - blurred[k] / 10000);
+    k++;
+    let i = ((ys + 0.5) * 800) | 0;
+    i = i < 0 ? 0 : i > 1600 ? 1600 : i;
+    const t = lut[i];
+    // Renk farkı parlaklığa eklenir: siyah metin siyah, kağıt beyaz kalır,
+    // renkli damga/kalem rengi korunup canlanır.
+    const c = 255 * sat * Math.min(1, t * 1.5 + 0.2);
+    out[p] = 255 * t + (r - y) * c;
+    out[p + 1] = 255 * t + (g - y) * c;
+    out[p + 2] = 255 * t + (b - y) * c;
+    out[p + 3] = 255;
+  });
+  return out;
+}
+
+// 16 bit tampon için kayan pencereli ayrılabilir kutu bulanıklığı.
+function boxBlur16(a, w, h, r) {
+  const tmp = new Uint16Array(a.length);
+  const out = new Uint16Array(a.length);
+  const pass = (srcArr, dstArr, len, count, stride, step) => {
+    for (let line = 0; line < count; line++) {
+      const base = line * stride;
+      let sum = 0;
+      for (let i = -r; i <= r; i++) sum += srcArr[base + Math.min(len - 1, Math.max(0, i)) * step];
+      for (let i = 0; i < len; i++) {
+        dstArr[base + i * step] = sum / (2 * r + 1);
+        const add = Math.min(len - 1, i + r + 1);
+        const rem = Math.max(0, i - r);
+        sum += srcArr[base + add * step] - srcArr[base + rem * step];
+      }
+    }
+  };
+  pass(a, tmp, w, h, w, 1); // yatay
+  pass(tmp, out, h, w, 1, w); // dikey
   return out;
 }
 

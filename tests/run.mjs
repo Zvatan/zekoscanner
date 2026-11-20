@@ -75,6 +75,12 @@ for (const f of FILTERS) {
   console.log(`Filtre ${f.id}: ${(performance.now() - t).toFixed(0)}ms`);
   writeFileSync(join(out, `filter-${f.id}.png`), encodePng(r, size.w, size.h));
 }
+for (const s of [0, 30, 100]) {
+  t = performance.now();
+  const r = applyFilter(warped, size.w, size.h, 'magic', s);
+  console.log(`Sihirli %${s}: ${(performance.now() - t).toFixed(0)}ms`);
+  writeFileSync(join(out, `filter-magic-${s}.png`), encodePng(r, size.w, size.h));
+}
 const rot = rotate90(warped, size.w, size.h, 1);
 writeFileSync(join(out, 'rotated.png'), encodePng(rot.data, rot.w, rot.h));
 console.log('Çıktılar:', out);

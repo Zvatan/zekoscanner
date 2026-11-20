@@ -54,25 +54,25 @@ export function createSession() {
       return { w: warped.w, h: warped.h };
     },
 
-    preview({ mode }) {
+    preview({ mode, strength }) {
       requireWarped();
-      const out = applyFilter(preview.data, preview.w, preview.h, mode);
+      const out = applyFilter(preview.data, preview.w, preview.h, mode, strength);
       return { buffer: out.buffer, w: preview.w, h: preview.h };
     },
 
-    thumbs() {
+    thumbs({ strength } = {}) {
       requireWarped();
       return FILTERS.map((f) => ({
         id: f.id,
-        buffer: applyFilter(thumb.data, thumb.w, thumb.h, f.id).buffer,
+        buffer: applyFilter(thumb.data, thumb.w, thumb.h, f.id, strength).buffer,
         w: thumb.w,
         h: thumb.h,
       }));
     },
 
-    render({ mode }) {
+    render({ mode, strength }) {
       requireWarped();
-      const out = applyFilter(warped.data, warped.w, warped.h, mode);
+      const out = applyFilter(warped.data, warped.w, warped.h, mode, strength);
       return { buffer: out.buffer, w: warped.w, h: warped.h };
     },
 

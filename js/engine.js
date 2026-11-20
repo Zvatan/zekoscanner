@@ -99,16 +99,16 @@ export class Engine {
     return this.call('rotate', { quarter });
   }
 
-  preview(mode) {
-    return this.call('preview', { mode });
+  preview(mode, strength) {
+    return this.call('preview', { mode, strength });
   }
 
-  thumbs() {
-    return this.call('thumbs');
+  thumbs(strength) {
+    return this.call('thumbs', { strength });
   }
 
-  render(mode) {
-    return this.call('render', { mode });
+  render(mode, strength) {
+    return this.call('render', { mode, strength });
   }
 
   release() {

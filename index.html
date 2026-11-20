@@ -84,6 +84,11 @@
         <canvas id="filter-canvas" aria-label="Sayfa önizlemesi"></canvas>
         <div class="stage-spinner" id="filter-spinner" hidden><span class="spinner"></span></div>
       </main>
+      <div class="strength" id="filter-strength" hidden>
+        <span class="strength__label">Yoğunluk</span>
+        <input type="range" id="strength-input" min="0" max="100" step="1" value="60" aria-label="Sihirli efekt yoğunluğu">
+        <output class="strength__value" id="strength-value" for="strength-input">60</output>
+      </div>
       <div class="filter-strip" id="filter-strip" role="radiogroup" aria-label="Görünüm"></div>
       <footer class="dock dock--tools">
         <button class="tool" id="filter-crop"><i data-icon="crop"></i><span>Kırp</span></button>
